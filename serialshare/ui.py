@@ -60,28 +60,28 @@ def inputwindow(out, devices):
     inputframe.grid_columnconfigure((0, 1), weight=1)
     inputframe.pack(side=tkinter.TOP)
 
-    # a label for the hostname input
-    hostnamelabel = tkinter.Label(inputframe, text="Hostname:")
-    hostnamelabel.grid(row=1, column=0)
-    # a one-line textbox for the hostname input
-    hostnamebox = tkinter.Entry(inputframe)
-    hostnamebox.grid(row=1, column=1, sticky="ew")
+    gridcontrols = {}
 
-    # a label for the device dropdown
-    devicelabel = tkinter.Label(inputframe, text="Serial device:")
-    devicelabel.grid(row=2, column=0)
-    # a dropdown for the device selection, populated by devices
+    # a one-line textbox for the hostname input
+    gridcontrols["Hostname"] = tkinter.Entry(inputframe)
+
+    # a dropdown for the serial device
     deviceboxstring = tkinter.StringVar()
     deviceboxstring.set(INITIAL_DEVICE)
-    devicebox = tkinter.OptionMenu(inputframe, deviceboxstring, *devices)
-    devicebox.grid(row=2, column=1, sticky="ew")
+    gridcontrols["Serial device"] = tkinter.OptionMenu(
+        inputframe,
+        deviceboxstring,
+        *devices
+    )
 
-    # a label for the baudrate input
-    baudratelabel = tkinter.Label(inputframe, text="Baudrate:")
-    baudratelabel.grid(row=3, column=0)
-    # a one-line textbox for the hostname input
-    baudratebox = tkinter.Entry(inputframe)
-    baudratebox.grid(row=3, column=1, sticky="ew")
+    # another box, for device speed
+    gridcontrols["Baudrate"] = tkinter.Entry(inputframe)
+
+    # render each of our controls w their labels in a pretty grid
+    for num, key in enumerate(gridcontrols, start=1):
+        label = tkinter.Label(inputframe, text=(key+":"))
+        label.grid(row=num, column=0)
+        gridcontrols[key].grid(row=num, column=1, sticky="ew")
 
     # buttons #
     # a frame for out start/cancel buttons
@@ -91,9 +91,9 @@ def inputwindow(out, devices):
     def input_values():
         """ returns a dict from which to fill the supplied `out` arg """
         return {
-            "hostname": hostnamebox.get(),
+            "hostname": gridcontrols["Hostname"].get(),
             "device": deviceboxstring.get(),
-            "baudrate": baudratebox.get(),
+            "baudrate": gridcontrols["Baudrate"].get(),
         }
 
     # start button. when pressed, set values from controls
