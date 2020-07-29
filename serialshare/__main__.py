@@ -19,9 +19,13 @@ options = {
     "display": None,
 }
 
-devices = device.list_devices()
-ui.inputwindow(options, devices.keys())
+all_devices = device.list_devices()
+ui.inputwindow(options, all_devices.keys())
+
+selected_device = all_devices[options["device"]]
 
 print("Connecting device {} to host {}.".format(
-    devices[options["device"]], options["hostname"]
+    selected_device, options["hostname"]
 ))
+
+local = device.open_port(selected_device)
