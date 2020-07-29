@@ -4,6 +4,7 @@ gui elements
 
 import tkinter
 import tkinter.messagebox
+import sys
 
 
 INITIAL_DEVICE = "Select a serial device..."
@@ -32,22 +33,25 @@ def inputwindow(out, devices):
     stores answers in `out["hostname"]` and `out["device"]`
     """
 
+    # main window #
     # create a window
     root = tkinter.Tk()
     root.title("serialshare")
     root.geometry("320x120")
+    root.eval(
+        "tk::PlaceWindow %s center" % root.winfo_pathname(root.winfo_id())
+    )
 
     # a frame for padding
     container = tkinter.Frame(root)
     container.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.90)
 
-
+    # inputs #
     # a frame to hold our input controls
     inputframe = tkinter.Frame(container)
     # organized into two columns
     inputframe.grid_columnconfigure((0, 1), weight=1)
     inputframe.pack(side=tkinter.TOP)
-    #inputframe.place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
 
     # a label for the hostname input
     hostnamelabel = tkinter.Label(inputframe, text="Hostname:")
@@ -65,7 +69,7 @@ def inputwindow(out, devices):
     devicebox = tkinter.OptionMenu(inputframe, deviceboxstring, *devices)
     devicebox.grid(row=2, column=1, sticky="ew")
 
-
+    # buttons #
     # a frame for out start/cancel buttons
     buttonframe = tkinter.Frame(container)
     buttonframe.pack(side=tkinter.BOTTOM)
@@ -74,7 +78,7 @@ def inputwindow(out, devices):
     startbutton = tkinter.Button(
         buttonframe,
         text="Start",
-        command=lambda:setout(
+        command=lambda: setout(
             # the window to close:
             root,
             # the dict reference:
@@ -91,13 +95,13 @@ def inputwindow(out, devices):
     exitbutton = tkinter.Button(
         buttonframe,
         text="Cancel",
-        command=exit
+        command=sys.exit
     )
     exitbutton.pack(side="left")
 
-
+    # execution #
     try:
         root.mainloop()
     except KeyboardInterrupt:
         print("\ncaught ctrl-c while awaiting gui input")
-        exit()
+        sys.exit()

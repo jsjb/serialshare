@@ -9,9 +9,9 @@ Upon answer, it connects to a serialshare-server instance and enables
 communication between the given serial port and the server.
 """
 
-from . import device
-from . import ui
-import websockets
+import device
+import ui
+# import websockets
 
 
 options = {
