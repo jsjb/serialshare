@@ -10,19 +10,26 @@ import sys
 INITIAL_DEVICE = "Select a serial device..."
 
 
-def setout(window, out, host, dev):
+def setout(window, out, options):
     """
     closes window, sets out["device"] to dev and out["hostname"] to host
     """
-    if host == "":
-        tkinter.messagebox.showinfo("Invalid input", "Enter a hostname")
-        return
 
-    if dev == INITIAL_DEVICE:
+    if options["device"] == INITIAL_DEVICE:
         tkinter.messagebox.showinfo("Invalid input", "Select a device")
         return
-    out["device"] = dev
-    out["hostname"] = host
+
+    for key in options.keys():
+        # check for blank options before returning
+        if options[key] == "":
+            tkinter.messagebox.showinfo(
+                "Invalid input",
+                "Field '{}' cannot be blank" % key
+            )
+            return
+
+        out[key] = options[key]
+
     window.destroy()
 
 
@@ -69,10 +76,25 @@ def inputwindow(out, devices):
     devicebox = tkinter.OptionMenu(inputframe, deviceboxstring, *devices)
     devicebox.grid(row=2, column=1, sticky="ew")
 
+    # a label for the baudrate input
+    baudratelabel = tkinter.Label(inputframe, text="Baudrate:")
+    baudratelabel.grid(row=3, column=0)
+    # a one-line textbox for the hostname input
+    baudratebox = tkinter.Entry(inputframe)
+    baudratebox.grid(row=3, column=1, sticky="ew")
+
     # buttons #
     # a frame for out start/cancel buttons
     buttonframe = tkinter.Frame(container)
     buttonframe.pack(side=tkinter.BOTTOM)
+
+    def input_values():
+        """ returns a dict from which to fill the supplied `out` arg """
+        return {
+            "hostname": hostnamebox.get(),
+            "device": deviceboxstring.get(),
+            "baudrate": baudratebox.get(),
+        }
 
     # start button. when pressed, set values from controls
     startbutton = tkinter.Button(
@@ -83,10 +105,8 @@ def inputwindow(out, devices):
             root,
             # the dict reference:
             out,
-            # hostname text
-            hostnamebox.get(),
-            # dropdown selection
-            deviceboxstring.get()
+            # the dict to fill the ref from:
+            input_values()
         )
     )
     startbutton.pack(side="left")

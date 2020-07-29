@@ -16,16 +16,22 @@ from . import ui
 
 options = {
     "device": None,
-    "display": None,
+    "baudrate": 9600,
+    "hostname": None,
 }
 
 all_devices = device.list_devices()
+
+# set options from gui
 ui.inputwindow(options, all_devices.keys())
 
-selected_device = all_devices[options["device"]]
+# pull just the name of the device from the dict
+options["device"] = all_devices[options["device"]]
+# fix up baudrate from string
+options["baudrate"] = int(options["baudrate"])
 
-print("Connecting device {} to host {}.".format(
-    selected_device, options["hostname"]
+print("Connecting device {} at {} baud to host {}.".format(
+    options["device"], options["baudrate"], options["hostname"]
 ))
 
-local = device.open_port(selected_device)
+local = device.open_port(options["device"], options["baudrate"])
