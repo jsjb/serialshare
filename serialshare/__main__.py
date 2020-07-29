@@ -14,13 +14,12 @@ from . import ui
 import websockets
 
 
-device = {
-    "device": ":/",
-    "display": "WOW",
+options = {
+    "device": None,
+    "display": None,
 }
 
-print(device)
+devices = device.list_devices()
+ui.inputwindow(options, devices.keys())
 
-ui.inputwindow(device)
-
-print(device)
+print(devices[options["device"]])
