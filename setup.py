@@ -6,5 +6,9 @@ from distutils.core import setup
 setup(name='serialshare',
       version='1.0',
       packages=['serialshare', 'serialshare-server'],
-      install_requires=['pyserial==3.4', 'websockets==8.1']
-     )
+      install_requires=[
+          'pyserial==3.4',
+          'pyserial-asyncio==0.4',
+          'websockets==8.1'
+      ]
+      )
