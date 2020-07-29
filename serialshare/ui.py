@@ -60,6 +60,7 @@ def inputwindow(out, devices):
     inputframe.grid_columnconfigure((0, 1), weight=1)
     inputframe.pack(side=tkinter.TOP)
 
+    # a dictionary of controls with labels
     gridcontrols = {}
 
     # a one-line textbox for the hostname input
@@ -74,13 +75,15 @@ def inputwindow(out, devices):
         *devices
     )
 
-    # another box, for device speed
+    # another textbox, for device speed
     gridcontrols["Baudrate"] = tkinter.Entry(inputframe)
 
     # render each of our controls w their labels in a pretty grid
     for num, key in enumerate(gridcontrols, start=1):
-        label = tkinter.Label(inputframe, text=(key+":"))
-        label.grid(row=num, column=0)
+        tkinter.Label(
+            inputframe, text=(key+":")
+        ).grid(row=num, column=0, sticky="e")
+
         gridcontrols[key].grid(row=num, column=1, sticky="ew")
 
     # buttons #

@@ -4,14 +4,15 @@ A program for connecting a local serial port to serialshare-server
 
 Whan started, this program asks for the following information by GUI:
     * server URL (textbox)
-    * serial port (dropdown)
+    * serial port identifier (dropdown)
+    * serial port baudrate (textbox)
 Upon answer, it connects to a serialshare-server instance and enables
 communication between the given serial port and the server.
 """
 
 from . import device
 from . import ui
-# import websockets
+from . import net
 
 
 options = {
@@ -34,4 +35,6 @@ print("Connecting device {} at {} baud to host {}.".format(
     options["device"], options["baudrate"], options["hostname"]
 ))
 
-local = device.open_port(options["device"], options["baudrate"])
+dev = options["device"]
+baud = options["baudrate"]
+local = device.open_port(dev, baud)
