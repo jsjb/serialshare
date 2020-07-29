@@ -22,4 +22,6 @@ options = {
 devices = device.list_devices()
 ui.inputwindow(options, devices.keys())
 
-print(devices[options["device"]])
+print("Connecting device {} to host {}.".format(
+    devices[options["device"]], options["hostname"]
+))
