@@ -13,26 +13,27 @@ communication between the given serial port and the server.
 from . import device
 from . import ui
 from . import net
+from . import data
 
-
-options = {
-    "device": None,
-    "baudrate": 9600,
-    "hostname": None,
-}
+# fetch last used settings, or the defaults
+profile = data.read_profile()
+print(profile)
 
 all_devices = device.list_devices()
 
-# set options from gui
-ui.inputwindow(options, all_devices.keys())
+# configure profile from gui
+ui.inputwindow(profile, all_devices.keys())
+
+# save profile
+data.write_profile(profile)
 
 # pull just the name of the device from the dict
-options["device"] = all_devices[options["device"]]
+profile["device"] = all_devices[profile["device"]]
 # fix up baudrate from string
-options["baudrate"] = int(options["baudrate"])
+profile["baudrate"] = int(profile["baudrate"])
 
 print("Connecting device {} at {} baud to host {}.".format(
-    options["device"], options["baudrate"], options["hostname"]
+    profile["device"], profile["baudrate"], profile["hostname"]
 ))
 
 dev = options["device"]

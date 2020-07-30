@@ -4,7 +4,7 @@ functions for communicating with serial devices
 
 import asyncio
 
-import serial.aio
+import serial_asyncio
 import serial.tools.list_ports
 
 

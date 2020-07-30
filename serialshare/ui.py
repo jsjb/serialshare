@@ -10,34 +10,34 @@ import sys
 INITIAL_DEVICE = "Select a serial device..."
 
 
-def setout(window, out, options):
+def setprofile(window, profile, new):
     """
-    closes window, sets out["device"] to dev and out["hostname"] to host
+    sets `profile` from values in `new` and closes the window
     """
 
-    if options["device"] == INITIAL_DEVICE:
+    if new["device"] == INITIAL_DEVICE:
         tkinter.messagebox.showinfo("Invalid input", "Select a device")
         return
 
-    for key in options.keys():
+    for key in new.keys():
         # check for blank options before returning
-        if options[key] == "":
+        if new[key] == "":
             tkinter.messagebox.showinfo(
                 "Invalid input",
-                "Field '{}' cannot be blank" % key
+                "Field '{}' cannot be blank".format(key)
             )
             return
 
-        out[key] = options[key]
+        profile[key] = new[key]
 
     window.destroy()
 
 
-def inputwindow(out, devices):
+def inputwindow(profile, devices):
     """
-    takes a dict, `out`; and a list, `devices`
+    takes a dict, `profile`; and a list, `devices`
     asks for hostname (text input), serial device (dropdown)
-    stores answers in `out["hostname"]` and `out["device"]`
+    stores answers in `profile["hostname"]` and `profile["device"]`
     """
 
     # main window #
@@ -64,19 +64,30 @@ def inputwindow(out, devices):
     gridcontrols = {}
 
     # a one-line textbox for the hostname input
-    gridcontrols["Hostname"] = tkinter.Entry(inputframe)
+    hostname = tkinter.StringVar()
+    if profile["hostname"] is not None:
+        hostname.set(profile["hostname"])
+    gridcontrols["Hostname"] = tkinter.Entry(
+        inputframe, text=hostname
+    )
 
     # a dropdown for the serial device
-    deviceboxstring = tkinter.StringVar()
-    deviceboxstring.set(INITIAL_DEVICE)
+    serialdevice = tkinter.StringVar()
+    serialdevice.set(INITIAL_DEVICE)
+    if profile["device"] is not None:
+        serialdevice.set(profile["device"])
     gridcontrols["Serial device"] = tkinter.OptionMenu(
         inputframe,
-        deviceboxstring,
+        serialdevice,
         *devices
     )
 
     # another textbox, for device speed
-    gridcontrols["Baudrate"] = tkinter.Entry(inputframe)
+    baudrate = tkinter.IntVar()
+    baudrate.set(profile["baudrate"])
+    gridcontrols["Baudrate"] = tkinter.Entry(
+        inputframe, text=baudrate
+    )
 
     # render each of our controls w their labels in a pretty grid
     for num, key in enumerate(gridcontrols, start=1):
@@ -87,27 +98,27 @@ def inputwindow(out, devices):
         gridcontrols[key].grid(row=num, column=1, sticky="ew")
 
     # buttons #
-    # a frame for out start/cancel buttons
+    # a frame for our start/cancel buttons
     buttonframe = tkinter.Frame(container)
     buttonframe.pack(side=tkinter.BOTTOM)
 
     def input_values():
-        """ returns a dict from which to fill the supplied `out` arg """
+        """ returns a dict from which to fill the supplied `profile` arg """
         return {
             "hostname": gridcontrols["Hostname"].get(),
-            "device": deviceboxstring.get(),
-            "baudrate": gridcontrols["Baudrate"].get(),
+            "device": serialdevice.get(),
+            "baudrate": baudrate.get(),
         }
 
     # start button. when pressed, set values from controls
     startbutton = tkinter.Button(
         buttonframe,
         text="Start",
-        command=lambda: setout(
+        command=lambda: setprofile(
             # the window to close:
             root,
             # the dict reference:
-            out,
+            profile,
             # the dict to fill the ref from:
             input_values()
         )

@@ -7,6 +7,7 @@ setup(name='serialshare',
       version='1.0',
       packages=['serialshare', 'serialshare-server'],
       install_requires=[
+          'appdirs>=1.4,<1.5',
           'pyserial==3.4',
           'pyserial-asyncio==0.4',
           'websockets==8.1'
