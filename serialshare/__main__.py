@@ -36,6 +36,47 @@ print("Connecting device {} at {} baud to host {}.".format(
     profile["device"], profile["baudrate"], profile["hostname"]
 ))
 
-dev = options["device"]
-baud = options["baudrate"]
-local = device.open_port(dev, baud)
+#localdev = device.open_port(profile["device"], profile["baudrate"])
+
+import websockets.client
+import serial_asyncio
+import asyncio
+
+loop = asyncio.get_event_loop()
+#class WebSerialProtocol(websockets.client.WebSocketClientProtocol):
+    #pass
+
+class WebSerial(asyncio.Protocol):
+    def __init__(self, websocket, loop):
+        self.websocket = websocket
+        self.loop = loop
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
+        print('serial port opened', transport)
+        transport.write(b'\x03\x04\x03\n')
+
+    def data_received(self, data):
+        print("got data", data)
+        return asyncio.create_task(self.websocket.send(data))
+
+    def connection_lost(self, exc):
+        self.transport.loop.stop()
+
+async def wsprotofac():
+    ws = await websockets.client.connect("ws://" + profile["hostname"])
+
+    transport, protocol = await serial_asyncio.create_serial_connection(
+        loop,
+        lambda: WebSerial(ws, loop),
+        profile["device"],
+        profile["baudrate"]
+    )
+
+    async for message in ws:
+        transport.write(bytes(message, encoding='utf-8'))
+
+loop.run_until_complete(wsprotofac())
+loop.run_forever()
+loop.close()
