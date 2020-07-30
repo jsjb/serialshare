@@ -29,4 +29,5 @@ class WebSerial(asyncio.Protocol):
 
 async def connect(host):
     """ returns a websocket connection """
+    # TODO: use wss, once the server is ready for deployment
     return websockets.client.connect("ws://{}".format(host))
