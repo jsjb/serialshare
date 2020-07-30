@@ -23,7 +23,7 @@ print(profile)
 all_devices = device.list_devices()
 
 # configure profile from gui
-ui.inputwindow(profile, all_devices.keys())
+ui.input_window(profile, all_devices.keys())
 
 # save profile
 data.write_profile(profile)
@@ -37,23 +37,28 @@ print("Connecting device {} at {} baud to host {}.".format(
     profile["device"], profile["baudrate"], profile["hostname"]
 ))
 
-loop = asyncio.get_event_loop()
 
-
-async def main():
+async def main(event_loop):
     """ connects serial port with websocket """
+    # get our connection
     websocket = await net.connect(profile["hostname"])
-    webserial = net.WebSerial(websocket, loop)
+    # create the protocol object for pyserial to write to
+    webserial = net.WebSerial(websocket, event_loop)
 
+    # read from the serial device into the websocket
     transport, _ = await device.open_dev(
         loop,
         lambda: webserial,
         profile["device"],
         profile["baudrate"]
     )
+
+    # read from the websocket into the serial device
     async for message in websocket:
         transport.write(bytes(message, encoding='utf-8'))
 
-loop.run_until_complete(main())
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main(loop))
 loop.run_forever()
 loop.close()

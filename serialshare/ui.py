@@ -10,7 +10,7 @@ import sys
 INITIAL_DEVICE = "Select a serial device..."
 
 
-def setprofile(window, profile, new):
+def set_profile(window, profile, new):
     """
     sets `profile` from values in `new` and closes the window
     """
@@ -33,7 +33,7 @@ def setprofile(window, profile, new):
     window.destroy()
 
 
-def inputwindow(profile, devices):
+def input_window(profile, devices):
     """
     takes a dict, `profile`; and a list, `devices`
     asks for hostname (text input), serial device (dropdown)
@@ -55,66 +55,66 @@ def inputwindow(profile, devices):
 
     # inputs #
     # a frame to hold our input controls
-    inputframe = tkinter.Frame(container)
+    input_frame = tkinter.Frame(container)
     # organized into two columns
-    inputframe.grid_columnconfigure((0, 1), weight=1)
-    inputframe.pack(side=tkinter.TOP)
+    input_frame.grid_columnconfigure((0, 1), weight=1)
+    input_frame.pack(side=tkinter.TOP)
 
     # a dictionary of controls with labels
-    gridcontrols = {}
+    grid_controls = {}
 
     # a one-line textbox for the hostname input
     hostname = tkinter.StringVar()
     if profile["hostname"] is not None:
         hostname.set(profile["hostname"])
-    gridcontrols["Hostname"] = tkinter.Entry(
-        inputframe, text=hostname
+    grid_controls["Hostname"] = tkinter.Entry(
+        input_frame, text=hostname
     )
 
     # a dropdown for the serial device
-    serialdevice = tkinter.StringVar()
-    serialdevice.set(INITIAL_DEVICE)
+    serial_device = tkinter.StringVar()
+    serial_device.set(INITIAL_DEVICE)
     if profile["device"] is not None:
-        serialdevice.set(profile["device"])
-    gridcontrols["Serial device"] = tkinter.OptionMenu(
-        inputframe,
-        serialdevice,
+        serial_device.set(profile["device"])
+    grid_controls["Serial device"] = tkinter.OptionMenu(
+        input_frame,
+        serial_device,
         *devices
     )
 
     # another textbox, for device speed
     baudrate = tkinter.IntVar()
     baudrate.set(profile["baudrate"])
-    gridcontrols["Baudrate"] = tkinter.Entry(
-        inputframe, text=baudrate
+    grid_controls["Baudrate"] = tkinter.Entry(
+        input_frame, text=baudrate
     )
 
     # render each of our controls w their labels in a pretty grid
-    for num, key in enumerate(gridcontrols, start=1):
+    for num, key in enumerate(grid_controls, start=1):
         tkinter.Label(
-            inputframe, text=(key+":")
+            input_frame, text=(key+":")
         ).grid(row=num, column=0, sticky="e")
 
-        gridcontrols[key].grid(row=num, column=1, sticky="ew")
+        grid_controls[key].grid(row=num, column=1, sticky="ew")
 
     # buttons #
     # a frame for our start/cancel buttons
-    buttonframe = tkinter.Frame(container)
-    buttonframe.pack(side=tkinter.BOTTOM)
+    button_frame = tkinter.Frame(container)
+    button_frame.pack(side=tkinter.BOTTOM)
 
     def input_values():
-        """ returns a dict from which to fill the supplied `profile` arg """
+        """ returns a dict from which to fill the supplied `profile` ref """
         return {
-            "hostname": gridcontrols["Hostname"].get(),
-            "device": serialdevice.get(),
+            "hostname": hostname.get(),
+            "device": serial_device.get(),
             "baudrate": baudrate.get(),
         }
 
     # start button. when pressed, set values from controls
-    startbutton = tkinter.Button(
-        buttonframe,
+    start_button = tkinter.Button(
+        button_frame,
         text="Start",
-        command=lambda: setprofile(
+        command=lambda: set_profile(
             # the window to close:
             root,
             # the dict reference:
@@ -123,15 +123,15 @@ def inputwindow(profile, devices):
             input_values()
         )
     )
-    startbutton.pack(side="left")
+    start_button.pack(side="left")
 
     # exit button. closes the application without cleanup
-    exitbutton = tkinter.Button(
-        buttonframe,
+    exit_button = tkinter.Button(
+        button_frame,
         text="Cancel",
         command=sys.exit
     )
-    exitbutton.pack(side="left")
+    exit_button.pack(side="left")
 
     # execution #
     try:
