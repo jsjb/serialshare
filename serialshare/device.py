@@ -13,7 +13,7 @@ def list_devices():
 
 def open_dev(loop, protofac, device, baudrate):
     """ return a local serial port connection """
-    serial_asyncio.create_serial_connection(
+    return serial_asyncio.create_serial_connection(
         loop,
         protofac,
         device,

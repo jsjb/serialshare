@@ -55,7 +55,14 @@ async def main(event_loop):
 
     # read from the websocket into the serial device
     async for message in websocket:
-        transport.write(bytes(message, encoding='utf-8'))
+        # message is bytes if we send it as such, so no need to decode
+        lastbyte = 0x00
+        for byte in message:
+            # fix newlines
+            if byte == ord('\n') and lastbyte != ord('\r'):
+                transport.write(b'\r\n')
+            else:
+                transport.write(bytes([byte]))
 
 
 loop = asyncio.get_event_loop()

@@ -1,5 +1,6 @@
 """ networking and i/o """
 import asyncio
+import time
 
 import websockets.client
 
@@ -16,10 +17,15 @@ class WebSerial(asyncio.Protocol):
         print('serial port opened')
         # Ctrl-C, Ctrl-D, Ctrl-C, newline
         # this should reboot a CircuitPython device and open the REPL
-        transport.write(b'\x03\x04\x03\n')
+        transport.write(b'\x03')
+        time.sleep(0.1)
+        transport.write(b'\x04')
+        time.sleep(0.1)
+        transport.write(b'\x03')
+        time.sleep(0.1)
+        transport.write(b'\x0a')
 
     def data_received(self, data):
-        # TODO: remove this print once the server works
         print("got data", data)
         return asyncio.create_task(self.websocket.send(data))
 
@@ -27,7 +33,7 @@ class WebSerial(asyncio.Protocol):
         self.transport.loop.stop()
 
 
-async def connect(host):
+def connect(host):
     """ returns a websocket connection """
     # TODO: use wss, once the server is ready for deployment
     return websockets.client.connect("ws://{}".format(host))
