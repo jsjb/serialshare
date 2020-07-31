@@ -11,6 +11,7 @@ setup(name='serialshare',
           'asciimatics==1.11',
           'pyserial==3.4',
           'pyserial-asyncio==0.4',
+          'pyte>=0.8.0,<=0.9'
           'websockets==8.1'
       ]
       )

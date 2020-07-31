@@ -15,6 +15,9 @@ import asciimatics
 import asciimatics.screen
 import asciimatics.event
 
+import pyte.streams
+import pyte.screens
+
 import websockets
 
 
@@ -31,53 +34,21 @@ signal.signal(signal.SIGINT, handler)
 screen = asciimatics.screen.Screen.open()
 screen.refresh()
 
+termscreen = pyte.screens.HistoryScreen(screen.width, screen.height - 1, 15000)
+termstream = pyte.streams.ByteStream(screen=termscreen, strict=False)
+termscreen.reset()
+
 
 async def get_messages(websocket):
     cursor_x = 0
     cursor_y = 0
     try:
         async for message in websocket:
-            lastbyte = 0x00
-            for byte in message:
-                # word wrap
-                if cursor_x >= screen.width:
-                    cursor_x = 0
-                    cursor_y += 1
-                # TODO: scroll
-                if cursor_y >= screen.height - 2:
-                    cursor_y = 0
-
-                if byte == ord('\n'):
-                    # crlf
-                    if lastbyte in (ord('\r'), ord('\n')):
-                        cursor_y += 1
-                        cursor_x = 0
-                        for x in range(cursor_x, screen.width):
-                            screen.print_at(' ', x, cursor_y)
-                    else:
-                        cursor_y += 1
-                elif lastbyte == ord('\r'):
-                    # carriage return
-                    cursor_x = 0
-                elif byte == ord('\t'):
-                    if cursor_x % 0 != 0:
-                        cursor_x += 1
-
-                    while cursor_x % 8 != 0:
-                        screen.print_at(' ', cursor_x, cursor_y)
-                        cursor_x += 1
-                elif byte == ord('\b'):
-                    # backspace
-                    cursor_x -= 1
-                    screen.print_at(' ', cursor_x, cursor_y)
-                else:
-                    # hopefully a printable character or terminal control char
-                    screen.print_at(chr(byte), cursor_x, cursor_y)
-                    cursor_x += 1
-
-                lastbyte = byte
-
+            termstream.feed(message)
+            for dirty in termscreen.dirty:
+                screen.print_at(termscreen.display[dirty], 0, dirty)
             screen.refresh()
+
     except websockets.exceptions.ConnectionClosedError:
         return
 
