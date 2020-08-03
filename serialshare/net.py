@@ -27,7 +27,8 @@ class WebSerial(asyncio.Protocol):
 
     def data_received(self, data):
         print("got data", data)
-        return asyncio.create_task(self.websocket.send(data))
+        coro = self.websocket.send(b'\x00' + data)
+        return asyncio.create_task(coro)
 
     def connection_lost(self, exc):
         self.transport.loop.stop()

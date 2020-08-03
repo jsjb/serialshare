@@ -56,6 +56,8 @@ async def main(event_loop):
             # after three tries (five seconds), give up
             event_loop.stop()
             return
+        else:
+            break
     # create the protocol object for pyserial to write to
     webserial = net.WebSerial(websocket, event_loop)
 
@@ -92,7 +94,7 @@ async def main(event_loop):
             elif mtype == MESSAGE_PING:
                 # respond to ping
                 # TODO: add timestamp
-                websocket.send(bytes[2, 0])
+                websocket.send(bytes([2, 0]))
 
     except websockets.exceptions.ConnectionClosedError:
         print("connection lost.")

@@ -80,6 +80,8 @@ _key_map[AsciimaticsScreen.KEY_SHIFT] = b''
 _key_map[AsciimaticsScreen.KEY_CONTROL] = b''
 _key_map[AsciimaticsScreen.KEY_MENU] = b''
 
+_key_map[ord('\n')] = b'\r'
+
 
 def lookup(code):
     """
@@ -89,4 +91,4 @@ def lookup(code):
     """
     if code in _key_map:
         return _key_map[code]
-    return code
+    return code.to_bytes(1, 'big', signed=False)

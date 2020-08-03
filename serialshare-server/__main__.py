@@ -121,22 +121,15 @@ async def send_input(state):
             # get the ascii value
             code = keycodes.lookup(ev.key_code)
 
-            # apply network encoding
-            try:
-                enc = code.to_bytes(1, 'big', signed=True)
-            except OverflowError:
-                enc = code.to_bytes(2, 'big', signed=True)
-
-
             # print for debugging purposes
             screen.print_at('          ', screen.width - 10, screen.height - 1)
-            screen.print_at(str(enc), screen.width - 10, screen.height - 1)
+            screen.print_at(str(code), screen.width - 10, screen.height - 1)
             screen.print_at('                ', 0, screen.height - 1)
-            screen.print_at(str(enc), 0, screen.height - 1)
+            screen.print_at(str(code), 0, screen.height - 1)
 
             # send it
             if state.websocket is not None:
-                await state.websocket.send(b'\x01' + enc)
+                await state.websocket.send(b'\x00' + code)
             # skip waiting if there's another keypress to read
             ev = screen.get_event()
 
