@@ -10,6 +10,12 @@ import sys
 INITIAL_DEVICE = "Select a serial device..."
 
 
+def error(err):
+    root = tkinter.Tk()
+    root.withdraw()
+    tkinter.messagebox.showinfo("Error", err)
+
+
 def set_profile(window, profile, new):
     """
     sets `profile` from values in `new` and closes the window
