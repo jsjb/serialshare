@@ -14,6 +14,7 @@ def error(err):
     root = tkinter.Tk()
     root.withdraw()
     tkinter.messagebox.showinfo("Error", err)
+    root.destroy()
 
 
 def set_profile(window, profile, new):
