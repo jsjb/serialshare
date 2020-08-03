@@ -58,7 +58,10 @@ termscreen.reset()
 async def get_messages(websocket):
     try:
         async for message in websocket:
-            termstream.feed(message)
+            mtype = message[0]
+            message = message[1:]
+            if mtype == 0:
+                termstream.feed(message)
 
     except websockets.exceptions.ConnectionClosedError:
         return

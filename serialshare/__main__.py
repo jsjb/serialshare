@@ -91,6 +91,7 @@ async def main(event_loop):
                         transport.write(bytes([byte]))
             elif mtype == MESSAGE_PING:
                 # respond to ping
+                # TODO: add timestamp
                 websocket.send(bytes[2, 0])
 
     except websockets.exceptions.ConnectionClosedError:

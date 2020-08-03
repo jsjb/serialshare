@@ -80,14 +80,6 @@ _key_map[AsciimaticsScreen.KEY_SHIFT] = b''
 _key_map[AsciimaticsScreen.KEY_CONTROL] = b''
 _key_map[AsciimaticsScreen.KEY_MENU] = b''
 
-import sys
-import json
-print(json.dumps(
-    {k: str(v) for k, v in _key_map.items()}
-    )
-)
-sys.exit()
-
 
 def lookup(code):
     """
