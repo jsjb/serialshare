@@ -48,15 +48,15 @@ class Terminal:
         self.screen.refresh()
 
         # create pyte in-memory terminal
-        # the screen draws terminal commands into a virtual screen, stored as a
-        # buffer of characters
+        # the pyte screen draws terminal commands onto a virtual screen, stored
+        # as a buffer of characters
         self.termscreen = pyte.screens.HistoryScreen(
             self.screen.width,
             self.screen.height - 2,
             15000
         )
-        # the stream parses bytes and turns them into terminal commands for the
-        # screen to draw
+        # the pyte stream parses bytes and turns them into terminal commands
+        # for the screen to draw
         self.termstream = pyte.streams.ByteStream(
             screen=self.termscreen,
             strict=False
@@ -73,6 +73,7 @@ class Terminal:
         self.screen.close()
 
     def _sig_handler(self, signum, frame):
+        """ signal handler. should only be set to catch ctrl-c """
         if signum == signal.SIGINT:
             self.ctrlc.set()
 
@@ -97,11 +98,12 @@ class Terminal:
 
     async def receive_bytes(self, reader):
         """ takes bytes from reader and feeds them to termstream """
-        byte = await reader.read(1)
-        if self.status < 2:
-            self.status = 2
         while not reader.at_eof():
-            self.termstream.feed(byte)
+            data = await reader.read(1)
+            if self.status < 2:
+                self.status = 2
+
+            self.termstream.feed(data)
 
     async def update_screen(self):
         """
@@ -144,7 +146,7 @@ class Terminal:
 
     async def send_input(self, writer):
         """
-        captures input from user's real terminal and sends it to the websocket
+        captures input from user's real terminal and sends it to `writer`
         """
         if self.ctrlc.is_set():
             self.ctrlc.clear()
@@ -164,6 +166,7 @@ class Terminal:
 
                 # send it
                 if self.status >= 2:
+                    await writer.drain()
                     writer.write(code)
 
             # skip waiting if there's another keypress to read
