@@ -52,7 +52,7 @@ class Server:
         self.websocket = websocket
 
         try:
-            async with self.pipe.open as (from_term, to_term):
+            async with self.pipe.open() as (from_term, to_term):
                 await asyncio.gather(
                     self._from_term_handler(from_term),
                     self._to_term_handler(to_term)

@@ -22,6 +22,7 @@ _STATUSES = [
     "Shutting down...",
 ]
 
+
 class Terminal:
     """
     a terminal-based terminal emulator that reads data to display and writes
@@ -41,19 +42,26 @@ class Terminal:
 
         # create asciimatics Screen interface to user's real terminal
         self.screen = asciimatics.screen.Screen.open()
+        # draw the status line separator
         self.screen.centre('--------------------', self.screen.height - 2)
+        # render the almost blank screen
         self.screen.refresh()
 
         # create pyte in-memory terminal
+        # the screen draws terminal commands into a virtual screen, stored as a
+        # buffer of characters
         self.termscreen = pyte.screens.HistoryScreen(
             self.screen.width,
             self.screen.height - 2,
             15000
         )
+        # the stream parses bytes and turns them into terminal commands for the
+        # screen to draw
         self.termstream = pyte.streams.ByteStream(
             screen=self.termscreen,
             strict=False
         )
+        # clear the screen
         self.termscreen.reset()
 
         atexit.register(self._cleanup)
@@ -74,19 +82,18 @@ class Terminal:
     async def termloop(self):
         """ create & gather tasks, and run them with the appropriate pipes """
         async with self.pipe.open() as (from_ws, to_ws):
-            # TODO: find a better place to set status = 2
-            if self.status < 2:
-                self.status = 2
+            if self.status < 1:
+                self.status = 1
 
             asyncio.create_task(self.receive_bytes(from_ws))
 
-            # run almost self.fps times per second
-            while await asyncio.sleep(1000 / self.fps / 100):
+            # run up to self.fps times per second
+            while True:
                 await asyncio.gather(
                     self.update_screen(),
                     self.send_input(to_ws)
                 )
-
+                await asyncio.sleep(1000 / self.fps / 100)
 
     async def receive_bytes(self, reader):
         """ takes bytes from reader and feeds them to termstream """
@@ -95,7 +102,6 @@ class Terminal:
             self.status = 2
         while not reader.at_eof():
             self.termstream.feed(byte)
-
 
     async def update_screen(self):
         """
@@ -145,8 +151,7 @@ class Terminal:
 
             # if a connection hasn't been made yet, ctrl-c closes the program
             if self.status < 2:
-                # TODO: write this
-                pass
+                asyncio.get_running_loop().stop()
 
             event = asciimatics.event.KeyboardEvent(self.screen.ctrl('c'))
         else:
