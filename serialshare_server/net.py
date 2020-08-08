@@ -14,6 +14,8 @@ _MESSAGE_SERIAL = 0
 
 async def process_request(path, headers):
     """ if the index is requested, display a webpage """
+    del headers  # revolves pylint w0163
+
     if path == "/":
         dir_path = os.path.dirname(os.path.abspath(sys.argv[0]))
         with open(os.path.join(dir_path, 'index.html')) as index:
@@ -45,6 +47,8 @@ class Server:
         """
         process incoming data
         """
+        del path  # revolves pylint w0163
+
         if self.websocket is not None:
             websocket.close()
             return
@@ -62,7 +66,7 @@ class Server:
 
     async def _from_term_handler(self, reader):
         while not reader.at_eof():
-            await self.websocket.send(b'\x00' + await reader.read())
+            await self.websocket.send(b'\x00' + await reader.read(16))
 
     async def _to_term_handler(self, writer):
         async for message in self.websocket:
