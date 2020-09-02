@@ -49,14 +49,14 @@ async def main():
         terminal.cleanup()
     except KeyboardInterrupt:
         terminal.cleanup()
-        print('caught ctrl-c')
+        reason = 'caught ctrl-c'
     finally:
-        print('closed terminal')
+        print(reason if not None else 'closed terminal')
 
         # enable the default handler for the ctrl-c event
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-        return proc.terminate()
+        proc.terminate()
 
 # disable general catching of ctrl-c
 signal.signal(signal.SIGINT, signal.SIG_IGN)

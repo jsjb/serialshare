@@ -41,6 +41,9 @@ class Terminal:
         self.ctrlc = asyncio.Event()
         self.ctrlc.clear()
 
+        # queue for knowing when to return from await self
+        self.quitqueue = asyncio.Queue()
+
         # create asciimatics Screen interface to user's real terminal
         self.screen = asciimatics.screen.Screen.open()
         # draw the status line separator
@@ -95,7 +98,7 @@ class Terminal:
             asyncio.create_task(self.receive_bytes(from_ws))
 
             # run up to self.fps times per second
-            while True:
+            while self.quitqueue.empty():
                 await asyncio.gather(
                     self.update_screen(),
                     self.send_input(to_ws)
@@ -174,7 +177,12 @@ class Terminal:
 
             # if a connection hasn't been made yet, ctrl-c closes the program
             if self.status < 2:
-                raise KeyboardInterrupt
+                # just raise an exception if we've already tried graceful quit
+                if self.quitqueue.qsize() > 0:
+                    raise KeyboardInterrupt
+
+                # otherwise, by all means, quit as gracefully as we can
+                await self.quitqueue.put("ctrl-c")
 
             event = asciimatics.event.KeyboardEvent(self.screen.ctrl('c'))
         else:
