@@ -44,14 +44,18 @@ async def main():
     # catch ctrl-c and send it to the terminal task
     signal.signal(signal.SIGINT, terminal.sig_handler)
 
+    # reason for the terminal process exiting
+    reason = None
+
     try:
         await terminal
         terminal.cleanup()
+        reason = 'exited normally'
     except KeyboardInterrupt:
         terminal.cleanup()
-        reason = 'caught ctrl-c'
+        reason = 'caught unprocessed ctrl-c multiple times'
     finally:
-        print(reason if not None else 'closed terminal')
+        print(reason if not None else 'closed terminal?')
 
         # enable the default handler for the ctrl-c event
         signal.signal(signal.SIGINT, signal.SIG_DFL)

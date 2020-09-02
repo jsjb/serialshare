@@ -25,6 +25,108 @@ _STATUSES = [
 ]
 
 
+class Screen:
+    """
+    a wrapper for connecting a pyte Screen with an asciimatics Screen
+    """
+    def __init__(self):
+        self.real = asciimatics.screen.Screen.open()
+        self.virt = pyte.screens.HistoryScreen(
+            self.real.width,
+            self.real.height,
+            15000
+        )
+
+        # draw the status line separator
+        self.real.centre('--------------------', self.real.height - 2)
+        # render the almost blank screen
+        self.real.refresh()
+
+        # clear the screen
+        self.virt.reset()
+
+        # the pyte stream parses bytes and turns them into terminal commands
+        # for the screen to draw
+        self.stream = pyte.streams.ByteStream(
+            screen=self.virt,
+            strict=False
+        )
+
+        # store the current cursor position for rendering later
+        self.cursor = {
+            "x": self.virt.cursor.x,
+            "y": self.virt.cursor.y,
+        }
+
+    def cleanup(self):
+        """ clears, resets, and closes all displays components """
+        self.real.clear()
+        self.virt.reset()
+        self.real.refresh()
+        self.real.close()
+
+    async def update(self, status):
+        """
+        to be run once per frame.
+        redraws terminal lines if necessary
+        updates the cursor location every time
+        draws the status line every time
+        """
+
+        self.real.print_at(
+            self.virt.display[self.cursor["x"]],
+            0, self.cursor["y"]
+        )
+
+        # unhighlight old cursor location
+        self.real.highlight(
+            self.cursor["x"], self.cursor["y"],
+            1, 1,
+            self.real.COLOUR_GREEN, self.real.COLOUR_BLUE
+        )
+
+        # redraw all lines that have changed
+        for dirty in self.virt.dirty:
+            self.real.print_at(
+                self.virt.display[dirty], 0,
+                dirty
+            )
+        self.virt.dirty.clear()
+
+        # highlight new cursor location
+        self.real.highlight(
+            self.virt.cursor.x, self.virt.cursor.y,
+            1, 1,
+            self.real.COLOUR_BLACK, self.real.COLOUR_WHITE
+        )
+
+        # store new cursor location
+        self.cursor["x"] = self.virt.cursor.x
+        self.cursor["y"] = self.virt.cursor.y
+
+        # clear status line
+        self.real.centre(
+            '\t'.expandtabs(self.real.width),
+            self.real.height - 1
+        )
+
+        current_time = time.ctime()
+        self.real.print_at(
+            current_time,
+            self.real.width - len(current_time),
+            self.real.height - 1
+        )
+
+        # draw status line
+        self.real.centre(
+            status,
+            self.real.height - 1
+        )
+
+        # render screen to user's real terminal
+        self.real.refresh()
+
+
 class Terminal:
     """
     a terminal-based terminal emulator that reads data to display and writes
@@ -44,39 +146,13 @@ class Terminal:
         # queue for knowing when to return from await self
         self.quitqueue = asyncio.Queue()
 
-        # create asciimatics Screen interface to user's real terminal
-        self.screen = asciimatics.screen.Screen.open()
-        # draw the status line separator
-        self.screen.centre('--------------------', self.screen.height - 2)
-        # render the almost blank screen
-        self.screen.refresh()
-
-        # create pyte in-memory terminal
-        # the pyte screen draws terminal commands onto a virtual screen, stored
-        # as a buffer of characters
-        self.termscreen = pyte.screens.HistoryScreen(
-            self.screen.width,
-            self.screen.height - 2,
-            15000
-        )
-        # the pyte stream parses bytes and turns them into terminal commands
-        # for the screen to draw
-        self.termstream = pyte.streams.ByteStream(
-            screen=self.termscreen,
-            strict=False
-        )
-        # clear the screen
-        self.termscreen.reset()
-        # store the current cursor position for rendering later
-        self.last_cursor = self.termscreen.cursor
+        self.screen = Screen()
 
         atexit.register(self.cleanup)
 
     def cleanup(self):
         """ closes self.screen, maybe other things later """
-        self.screen.clear()
-        self.screen.refresh()
-        self.screen.close()
+        self.screen.cleanup()
         atexit.unregister(self.cleanup)
 
     def sig_handler(self, signum, frame):
@@ -100,73 +176,19 @@ class Terminal:
             # run up to self.fps times per second
             while self.quitqueue.empty():
                 await asyncio.gather(
-                    self.update_screen(),
+                    self.screen.update(_STATUSES[self.status]),
                     self.send_input(to_ws)
                 )
                 await asyncio.sleep(1000 / self.fps / 100)
 
     async def receive_bytes(self, reader):
-        """ takes bytes from reader and feeds them to termstream """
+        """ takes bytes from reader and feeds them to the stream """
         while not reader.at_eof():
             data = await reader.read(16)
             if self.status < 2:
                 self.status = 2
 
-            self.termstream.feed(data)
-
-    async def update_screen(self):
-        """
-        to be run once per frame.
-        redraws terminal lines if necessary
-        updates the cursor location every time
-        draws the status line every time
-        """
-
-        self.screen.print_at(
-            self.termscreen.display[self.last_cursor.y],
-            0, self.last_cursor.y
-        )
-
-        # unhighlight old cursor location
-        self.screen.highlight(
-            self.last_cursor.x, self.last_cursor.y,
-            1, 1,
-            self.screen.COLOUR_GREEN, self.screen.COLOUR_BLUE
-        )
-
-        # redraw all lines that have changed
-        for dirty in self.termscreen.dirty:
-            self.screen.print_at(self.termscreen.display[dirty], 0, dirty)
-        self.termscreen.dirty.clear()
-
-        # highlight new cursor location
-        self.screen.highlight(
-            self.termscreen.cursor.x, self.termscreen.cursor.y,
-            1, 1,
-            self.screen.COLOUR_BLACK, self.screen.COLOUR_WHITE
-        )
-
-        # store new cursor location
-        self.last_cursor = self.termscreen.cursor
-
-        # clear status line
-        self.screen.centre(
-            '\t'.expandtabs(self.screen.width),
-            self.screen.height - 1
-        )
-
-        current_time = time.ctime()
-        self.screen.print_at(
-            current_time,
-            self.screen.width - len(current_time),
-            self.screen.height - 1
-        )
-
-        # draw status line
-        self.screen.centre(_STATUSES[self.status], self.screen.height - 1)
-
-        # render screen to user's real terminal
-        self.screen.refresh()
+            self.screen.stream.feed(data)
 
     async def send_input(self, writer):
         """
@@ -184,9 +206,9 @@ class Terminal:
                 # otherwise, by all means, quit as gracefully as we can
                 await self.quitqueue.put("ctrl-c")
 
-            event = asciimatics.event.KeyboardEvent(self.screen.ctrl('c'))
+            event = asciimatics.event.KeyboardEvent(self.screen.real.ctrl('c'))
         else:
-            event = self.screen.get_event()
+            event = self.screen.real.get_event()
 
         while event is not None:
             if isinstance(event, asciimatics.event.KeyboardEvent):
@@ -199,4 +221,4 @@ class Terminal:
                     writer.write(code)
 
             # skip waiting if there's another keypress to read
-            event = self.screen.get_event()
+            event = self.screen.real.get_event()
