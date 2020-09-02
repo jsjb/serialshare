@@ -78,7 +78,7 @@ class Terminal:
 
     def sig_handler(self, signum, frame):
         """ signal handler. should only be set to catch ctrl-c """
-        del frame  # revolves pylint w0163
+        del frame  # resolves pylint w0163
 
         if signum == signal.SIGINT:
             self.ctrlc.set()

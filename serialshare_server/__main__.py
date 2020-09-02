@@ -44,15 +44,19 @@ async def main():
     # catch ctrl-c and send it to the terminal task
     signal.signal(signal.SIGINT, terminal.sig_handler)
 
-    await terminal
+    try:
+        await terminal
+        terminal.cleanup()
+    except KeyboardInterrupt:
+        terminal.cleanup()
+        print('caught ctrl-c')
+    finally:
+        print('closed terminal')
 
-    terminal.cleanup()
-    print('closed terminal')
+        # enable the default handler for the ctrl-c event
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    # enable the default handler for the ctrl-c event
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    return proc.terminate()
+        return proc.terminate()
 
 # disable general catching of ctrl-c
 signal.signal(signal.SIGINT, signal.SIG_IGN)
