@@ -48,12 +48,11 @@ async def main():
     reason = None
 
     try:
-        await terminal
+        reason = await terminal
         terminal.cleanup()
-        reason = 'exited normally'
     except KeyboardInterrupt:
-        terminal.cleanup()
         reason = 'caught unprocessed ctrl-c multiple times'
+        terminal.cleanup()
     finally:
         print(reason if not None else 'closed terminal?')
 

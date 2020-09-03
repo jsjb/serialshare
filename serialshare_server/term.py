@@ -33,7 +33,7 @@ class Screen:
         self.real = asciimatics.screen.Screen.open()
         self.virt = pyte.screens.HistoryScreen(
             self.real.width,
-            self.real.height,
+            self.real.height - 2,
             15000
         )
 
@@ -74,7 +74,7 @@ class Screen:
         """
 
         self.real.print_at(
-            self.virt.display[self.cursor["x"]],
+            self.virt.display[self.cursor["y"]],
             0, self.cursor["y"]
         )
 
@@ -82,7 +82,7 @@ class Screen:
         self.real.highlight(
             self.cursor["x"], self.cursor["y"],
             1, 1,
-            self.real.COLOUR_GREEN, self.real.COLOUR_BLUE
+            self.real.COLOUR_WHITE, self.real.COLOUR_BLACK
         )
 
         # redraw all lines that have changed
@@ -179,7 +179,9 @@ class Terminal:
                     self.screen.update(_STATUSES[self.status]),
                     self.send_input(to_ws)
                 )
-                await asyncio.sleep(1000 / self.fps / 100)
+                await asyncio.sleep(1000 / self.fps / 1000)
+
+            return self.quitqueue.get_nowait()
 
     async def receive_bytes(self, reader):
         """ takes bytes from reader and feeds them to the stream """
@@ -217,7 +219,12 @@ class Terminal:
 
                 # send it
                 if self.status >= 2:
-                    await writer.drain()
+                    try:
+                        await writer.drain()
+                    except ConnectionResetError as reset_error:
+                        await self.quitqueue.put(
+                            "connection error: " + str(reset_error)
+                        )
                     writer.write(code)
 
             # skip waiting if there's another keypress to read
