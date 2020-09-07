@@ -15,16 +15,13 @@ from . import term
 
 
 async def net_server(pipe):
-    """
-    start a websocket server that writes to and reads from `pipe`, then wait
-    for it to close
-    """
-    srvr = await net.Server(pipe, host="0.0.0.0", port=8080)
-    return await srvr.wait_closed()
+    """ wrapper function for starting a net.Server connected to `pipe` """
+    server = await net.Server(pipe, host="0.0.0.0", port=8080)
+    return await server.wait_closed()
 
 
 def net_proc(pipe):
-    """ simple wrapper function for net_server """
+    """ wrapper for running net_server on its own thread/process """
     asyncio.run(net_server(pipe))
 
 
@@ -56,7 +53,7 @@ async def main():
     finally:
         print(reason if not None else 'closed terminal?')
 
-        # enable the default handler for the ctrl-c event
+        # restore the default handler for the ctrl-c event
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         proc.terminate()
