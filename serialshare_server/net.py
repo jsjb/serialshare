@@ -10,6 +10,7 @@ import sys
 import websockets
 
 _MESSAGE_SERIAL = 0
+_MESSAGE_SYNC = 1
 
 
 async def process_request(path, headers):
@@ -74,3 +75,6 @@ class Server:
             if mtype == _MESSAGE_SERIAL:
                 writer.write(message[1:])
                 await writer.drain()
+            elif mtype == _MESSAGE_SYNC:
+                # TODO: implement file sync
+                pass
