@@ -6,6 +6,7 @@ import asyncio
 import atexit
 import signal
 import time
+import queue
 
 import asciimatics.screen
 import asciimatics.event
@@ -171,7 +172,16 @@ class Terminal:
             if self.status < 1:
                 self.status = 1
 
-            asyncio.create_task(self.receive_bytes(from_ws))
+            outputqueue = queue.Queue()
+            loop = asyncio.get_running_loop()
+
+            asyncio.create_task(self.receive_bytes(from_ws, outputqueue))
+            loop.run_in_executor(
+                None,
+                _feed_bytes,
+                outputqueue,
+                self.screen.stream
+            )
 
             # run up to self.fps times per second
             while self.quitqueue.empty():
@@ -183,14 +193,14 @@ class Terminal:
 
             return self.quitqueue.get_nowait()
 
-    async def receive_bytes(self, reader):
-        """ takes bytes from reader and feeds them to the stream """
+    async def receive_bytes(self, reader, q):
+        """ takes bytes from reader and feeds them to the queue.Queue """
         while not reader.at_eof():
-            data = await reader.read(16)
             if self.status < 2:
                 self.status = 2
+            data = await reader.read(128)
+            q.put(data)
 
-            self.screen.stream.feed(data)
 
     async def send_input(self, writer):
         """
@@ -229,3 +239,12 @@ class Terminal:
 
             # skip waiting if there's another keypress to read
             event = self.screen.real.get_event()
+
+
+def _feed_bytes(q, feedable):
+    """
+    accepts a queue.Queue and continuously reads it into feedable
+    """
+    while True:
+        feedable.feed(q.get(block=True, timeout=None))
+
