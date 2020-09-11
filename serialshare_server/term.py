@@ -6,6 +6,7 @@ import asyncio
 import atexit
 import signal
 import time
+import threading
 import queue
 
 import asciimatics.screen
@@ -17,14 +18,6 @@ import pyte.streams
 
 from . import keycodes
 
-# status lines
-_STATUSES = [
-    "Starting up...",
-    "Waiting for host connection",
-    "Connected.",
-    "Shutting down...",
-]
-
 
 class Screen:
     """
@@ -35,7 +28,7 @@ class Screen:
         self.virt = pyte.screens.HistoryScreen(
             self.real.width,
             self.real.height - 2,
-            15000
+            150
         )
 
         # draw the status line separator
@@ -66,66 +59,111 @@ class Screen:
         self.real.refresh()
         self.real.close()
 
-    async def update(self, status):
+    def drawloop(self, status, fps=60):
         """
-        to be run once per frame.
+        loops up to fps times per second
         redraws terminal lines if necessary
-        updates the cursor location every time
-        draws the status line every time
+        updates the cursor location every frame
+        draws the status line every frame
         """
 
-        self.real.print_at(
-            self.virt.display[self.cursor["y"]],
-            0, self.cursor["y"]
-        )
-
-        # unhighlight old cursor location
-        self.real.highlight(
-            self.cursor["x"], self.cursor["y"],
-            1, 1,
-            self.real.COLOUR_WHITE, self.real.COLOUR_BLACK
-        )
-
-        # redraw all lines that have changed
-        for dirty in self.virt.dirty:
+        while status.get() < 3:
             self.real.print_at(
-                self.virt.display[dirty], 0,
-                dirty
+                self.virt.display[self.cursor["y"]],
+                0, self.cursor["y"]
             )
-        self.virt.dirty.clear()
 
-        # highlight new cursor location
-        self.real.highlight(
-            self.virt.cursor.x, self.virt.cursor.y,
-            1, 1,
-            self.real.COLOUR_BLACK, self.real.COLOUR_WHITE
-        )
+            # unhighlight old cursor location
+            self.real.highlight(
+                self.cursor["x"], self.cursor["y"],
+                1, 1,
+                self.real.COLOUR_WHITE, self.real.COLOUR_BLACK
+            )
 
-        # store new cursor location
-        self.cursor["x"] = self.virt.cursor.x
-        self.cursor["y"] = self.virt.cursor.y
+            # redraw all lines that have changed
+            # we work off a copy of the dirty line set so it doesn't change in
+            # another thread while we're reading it, which would cause an error
+            for dirty in self.virt.dirty.copy():
+                self.real.print_at(
+                    self.virt.display[dirty], 0,
+                    dirty
+                )
+            self.virt.dirty.clear()
 
-        # clear status line
-        self.real.centre(
-            '\t'.expandtabs(self.real.width),
-            self.real.height - 1
-        )
+            # highlight new cursor location
+            self.real.highlight(
+                self.virt.cursor.x, self.virt.cursor.y,
+                1, 1,
+                self.real.COLOUR_BLACK, self.real.COLOUR_WHITE
+            )
 
-        current_time = time.ctime()
-        self.real.print_at(
-            current_time,
-            self.real.width - len(current_time),
-            self.real.height - 1
-        )
+            # store new cursor location
+            self.cursor["x"] = self.virt.cursor.x
+            self.cursor["y"] = self.virt.cursor.y
 
-        # draw status line
-        self.real.centre(
-            status,
-            self.real.height - 1
-        )
+            # clear status line
+            self.real.centre(
+                '\t'.expandtabs(self.real.width),
+                self.real.height - 1
+            )
 
-        # render screen to user's real terminal
-        self.real.refresh()
+            current_time = time.ctime()
+            self.real.print_at(
+                current_time,
+                self.real.width - len(current_time),
+                self.real.height - 1
+            )
+
+            # draw status line
+            self.real.centre(
+                status.string(),
+                self.real.height - 1
+            )
+
+            # render screen to user's real terminal
+            self.real.refresh()
+
+            # only fire up to fps times per second
+            time.sleep(1000 / fps / 1000)
+
+
+class _Status:
+    """
+    a class shared by Terminal and Screen to pass a status line back and forth
+    this is broken out into its own class for easier thread safety
+    the atomicity of assignment is implementation dependent, so we lock a lot
+    """
+    _status_strings = [
+        "Starting up...",
+        "Waiting for host connection",
+        "Connected.",
+        "Shutting down...",
+    ]
+
+    def __init__(self, value=0):
+        self.lock = threading.Lock()
+        self.set(value)
+
+    def set(self, value):
+        """ sets the value of raw and updates string """
+        self.lock.acquire(True)
+        self.raw = value
+        self.raw_string = _Status._status_strings[value]
+        self.lock.release()
+
+    def get(self):
+        """ returns the value of raw """
+        self.lock.acquire(True)
+        ret = self.raw
+        self.lock.release()
+        return ret
+
+    def string(self):
+        """ returns a string describing the current status """
+        self.lock.acquire(True)
+        ret = self.raw_string
+        self.lock.release()
+        return ret
 
 
 class Terminal:
@@ -138,7 +176,7 @@ class Terminal:
         self.fps = fps
 
         # status index
-        self.status = 0
+        self.status = _Status()
 
         # catch ctrl-c so we can send it across the websocket
         self.ctrlc = asyncio.Event()
@@ -166,11 +204,12 @@ class Terminal:
     def __await__(self):
         return self.termloop().__await__()
 
+
     async def termloop(self):
         """ create & gather tasks, and run them with the appropriate pipes """
         async with self.pipe.open() as (from_ws, to_ws):
-            if self.status < 1:
-                self.status = 1
+            if self.status.get() < 1:
+                self.status.set(1)
 
             outputqueue = queue.Queue()
             loop = asyncio.get_running_loop()
@@ -179,27 +218,35 @@ class Terminal:
             loop.run_in_executor(
                 None,
                 _feed_bytes,
+                self.status,
                 outputqueue,
                 self.screen.stream
             )
 
+            loop.run_in_executor(
+                None,
+                self.screen.drawloop,
+                self.status,
+                self.fps
+            )
+
             # run up to self.fps times per second
             while self.quitqueue.empty():
-                await asyncio.gather(
-                    self.screen.update(_STATUSES[self.status]),
-                    self.send_input(to_ws)
-                )
+                await self.send_input(to_ws)
                 await asyncio.sleep(1000 / self.fps / 1000)
 
+            self.status.set(3)
             return self.quitqueue.get_nowait()
 
-    async def receive_bytes(self, reader, q):
+
+    async def receive_bytes(self, reader, screen_queue):
         """ takes bytes from reader and feeds them to the queue.Queue """
+        first_run = 1
         while not reader.at_eof():
-            if self.status < 2:
-                self.status = 2
+            if first_run == 1 and self.status.get() < 2:
+                self.status.set(2)
             data = await reader.read(128)
-            q.put(data)
+            screen_queue.put(data)
 
 
     async def send_input(self, writer):
@@ -210,7 +257,7 @@ class Terminal:
             self.ctrlc.clear()
 
             # if a connection hasn't been made yet, ctrl-c closes the program
-            if self.status < 2:
+            if self.status.get() < 2:
                 # just raise an exception if we've already tried graceful quit
                 if self.quitqueue.qsize() > 0:
                     raise KeyboardInterrupt
@@ -228,7 +275,7 @@ class Terminal:
                 code = keycodes.lookup(event.key_code)
 
                 # send it
-                if self.status >= 2:
+                if self.status.get() >= 2:
                     try:
                         await writer.drain()
                     except ConnectionResetError as reset_error:
@@ -241,10 +288,9 @@ class Terminal:
             event = self.screen.real.get_event()
 
 
-def _feed_bytes(q, feedable):
+def _feed_bytes(status, screen_queue, feedable):
     """
     accepts a queue.Queue and continuously reads it into feedable
     """
-    while True:
-        feedable.feed(q.get(block=True, timeout=None))
-
+    while status.get() < 3:
+        feedable.feed(screen_queue.get(block=True, timeout=None))
