@@ -80,15 +80,17 @@ class Screen:
                 self.real.COLOUR_WHITE, self.real.COLOUR_BLACK
             )
 
-            # redraw all lines that have changed
             # we work off a copy of the dirty line set so it doesn't change in
             # another thread while we're reading it, which would cause an error
-            for dirty in self.virt.dirty.copy():
+            dirties = self.virt.dirty.copy()
+            self.virt.dirty.clear()
+
+            # redraw all lines that have changed
+            for dirty in dirties:
                 self.real.print_at(
                     self.virt.display[dirty], 0,
                     dirty
                 )
-            self.virt.dirty.clear()
 
             # highlight new cursor location
             self.real.highlight(
