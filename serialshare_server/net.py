@@ -19,8 +19,9 @@ async def process_request(path, headers):
 
     if path == "/":
         dir_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        with open(os.path.join(dir_path, 'index.html')) as index:
-            return http.HTTPStatus.OK, [], index.read()
+        with open(os.path.join(dir_path, 'index.html'), 'rb') as index:
+            headers = [('Content-Type', 'text/html')]
+            return http.HTTPStatus.OK, headers, index.read()
 
     return None
 
