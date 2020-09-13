@@ -5,7 +5,7 @@ from distutils.core import setup
 
 setup(name='serialshare',
       version='1.0',
-      packages=['serialshare', 'serialshare-server'],
+      packages=['serialshare', 'serialshare_server'],
       install_requires=[
           'aiopipe>0.2,<0.3',
           'appdirs>1.4,<1.5',
