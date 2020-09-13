@@ -58,6 +58,10 @@ class Server:
 
         try:
             async with self.pipe.open() as (from_term, to_term):
+                # send some garbage data ending in 0x01 to signal a connection
+                to_term.write(b'\x00\x01')
+                await to_term.drain()
+
                 await asyncio.gather(
                     self._from_term_handler(from_term),
                     self._to_term_handler(to_term)

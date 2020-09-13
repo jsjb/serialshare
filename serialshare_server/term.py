@@ -241,10 +241,12 @@ class Terminal:
 
     async def receive_bytes(self, reader, screen_queue):
         """ takes bytes from reader and feeds them to the queue.Queue """
-        first_run = 1
+        # this byte is sent in net.py to indicate a connection's ready
+        await reader.readuntil(b'\x01')
+        if self.status.get() < 2:
+            self.status.set(2)
+
         while not reader.at_eof():
-            if first_run == 1 and self.status.get() < 2:
-                self.status.set(2)
             data = await reader.read(128)
             screen_queue.put(data)
 
