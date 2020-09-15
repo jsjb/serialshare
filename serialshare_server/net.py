@@ -19,9 +19,23 @@ async def process_request(path, headers):
 
     if path == "/":
         dir_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        with open(os.path.join(dir_path, 'index.html'), 'rb') as index:
-            headers = [('Content-Type', 'text/html')]
-            return http.HTTPStatus.OK, headers, index.read()
+        index_file = os.path.join(dir_path, 'index.html')
+
+        # prepare for the worst :)
+        status = http.HTTPStatus.INTERNAL_SERVER_ERROR
+        headers = []
+        body = f"500 - couldn't read {index_file}.\n".encode('utf-8')
+
+        try:
+            with open(index_file, 'rb') as index:
+                status = http.HTTPStatus.OK
+                headers = [('Content-Type', 'text/html')]
+                body = index.read()
+        except FileNotFoundError:
+            status = http.HTTPStatus.NOT_FOUND
+            body = b"404 - couldn't find index.html"
+        finally:
+            return status, headers, body
 
     return None
 
